@@ -163,6 +163,16 @@ function normalizePayload(payload) {
     }
   }
   
+  // Validate persyaratan_jabatan structure
+  if (normalized.persyaratan_jabatan) {
+    normalized.persyaratan_jabatan = normalized.persyaratan_jabatan
+      .map(p => ({
+        kompetensi_inti: (p.kompetensi_inti || '').trim(),
+        level: (p.level || '').trim()
+      }))
+      .filter(p => p.kompetensi_inti) // Hanya simpan yang punya kompetensi_inti
+  }
+  
   return normalized
 }
 
@@ -215,10 +225,14 @@ export const updateJabatan = async (req, res) => {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) {
+      console.error('Supabase update error:', error)
+      throw error
+    }
     return sendSuccess(res, denormalizeResponse(data), 'Jabatan berhasil diperbarui')
   } catch (err) {
-    return sendError(res, err.message)
+    console.error('updateJabatan error:', err)
+    return sendError(res, err.message || 'Gagal update jabatan')
   }
 }
 

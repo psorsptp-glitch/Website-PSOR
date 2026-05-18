@@ -21,7 +21,7 @@
       <button class="btn btn-outline" @click="exportExcel">↓ Export Excel</button>
       <div class="kinerja-toolbar__info">
         Tahun: <strong>{{ store.selectedTahun }}</strong>
-        &nbsp;|&nbsp; 💡 Double-click cell bulan untuk input data
+        &nbsp;|&nbsp; 💡 Double-click cell realisasi bulan untuk input data
       </div>
     </div>
 

@@ -103,7 +103,7 @@
                 <tr class="border border-gray-400">
                   <td class="doc-td-label font-bold">Dinas</td>
                   <td class="doc-td-value">{{ selectedNode.division || selectedNode.dinas || '—' }}</td>
-                </tr>
+                </tr> 
                 <tr class="border border-gray-400">
                   <td class="doc-td-label font-bold">Lokasi</td>
                   <td class="doc-td-value">{{ selectedNode.lokasi || '—' }}</td>
@@ -480,21 +480,26 @@
 
           <section>
             <h2 class="doc-section-title">X. PERSYARATAN JABATAN</h2>
+            
+            <!-- Kompetensi Inti Table -->
             <table class="w-full border-collapse text-sm">
               <thead>
                 <tr class="bg-gray-100">
+                  <th class="border border-gray-400 px-3 py-2 text-center font-bold w-10">No.</th>
                   <th class="border border-gray-400 px-3 py-2 text-center font-bold">Kompetensi Inti</th>
                   <th class="border border-gray-400 px-3 py-2 text-center font-bold">Level</th>
                 </tr>
               </thead>
               <tbody>
-                <tr class="align-top">
-                  <td class="border border-gray-400 px-3 py-3 w-1/2">
-                    <span class="text-gray-400 italic">Belum ada data Kompetensi inti</span>
-                  </td>
-                  <td class="border border-gray-400 px-3 py-3">
-                    <span class="text-gray-400 italic">Belum ada data Level</span>
-                  </td>
+                <template v-if="selectedNode?.persyaratan_jabatan?.length">
+                  <tr v-for="(item, idx) in selectedNode.persyaratan_jabatan" :key="idx" class="align-top">
+                    <td class="border border-gray-400 px-3 py-2 text-center">{{ idx + 1 }}.</td>
+                    <td class="border border-gray-400 px-3 py-2">{{ item.kompetensi_inti }}</td>
+                    <td class="border border-gray-400 px-3 py-2 text-center">{{ item.level }}</td>
+                  </tr>
+                </template>
+                <tr v-else>
+                  <td colspan="3" class="border border-gray-400 px-3 py-3 text-center text-gray-400 italic">Belum ada data Kompetensi inti</td>
                 </tr>
               </tbody>
             </table>
@@ -690,6 +695,17 @@ watch(() => jabatan.selectedNode, (node) => {
     selectedId.value = node.id
     // Load gambar dari database saat node berubah
     loadImageFromBackend(node.id)
+  }
+})
+
+// Reload data ketika modal ditutup (setelah edit/save)
+watch(() => modal.show, (isOpen) => {
+  if (!isOpen && selectedId.value) {
+    // Setelah modal ditutup, reload data terbaru dari store/database
+    setTimeout(() => {
+      const node = jabatan.nodes.find(n => n.id === selectedId.value)
+      if (node) jabatan.selectNode(node)
+    }, 100)
   }
 })
 

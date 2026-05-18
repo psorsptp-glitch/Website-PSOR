@@ -274,6 +274,34 @@
               </div>
             </div>
 
+            <!-- TAB: Persyaratan Jabatan -->
+            <div v-show="activeTab === 'persyaratan'" class="space-y-4">
+              <div class="bg-rose-50 rounded-xl p-4 border border-rose-200">
+                <div class="flex items-center justify-between mb-3">
+                  <p class="text-xs font-bold text-rose-700">🎯 Kompetensi Inti & Level</p>
+                  <button @click="addPersyaratan" type="button" class="text-xs text-pelindo-blue font-semibold hover:underline">+ Tambah</button>
+                </div>
+                <div class="space-y-2">
+                  <div v-if="form.persyaratan_jabatan.length === 0" class="text-center text-sm text-rose-500 italic py-4">
+                    Belum ada persyaratan jabatan
+                  </div>
+                  <div v-for="(item, idx) in form.persyaratan_jabatan" :key="idx" class="bg-white rounded-lg border border-rose-200 p-3 space-y-2">
+                    <div class="flex gap-2 items-start">
+                      <div class="flex-1">
+                        <label class="text-xs font-medium text-gray-600">Kompetensi Inti</label>
+                        <input v-model="item.kompetensi_inti" placeholder="cth: Kepemimpinan, Komunikasi, dll" class="form-input text-sm mt-1" />
+                      </div>
+                      <div class="w-24">
+                        <label class="text-xs font-medium text-gray-600">Level</label>
+                        <input v-model="item.level" placeholder="cth: Senior, Junior" class="form-input text-sm mt-1" />
+                      </div>
+                      <button @click="form.persyaratan_jabatan.splice(idx, 1)" type="button" class="text-gray-300 hover:text-red-400 transition-colors mt-6">✕</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- TAB: Dimensi -->
             <div v-show="activeTab === 'dimensi'" class="space-y-4">
               <!-- Dimensi Finansial -->
@@ -330,10 +358,11 @@ const keywordInput = ref('')
 const errors = reactive({ nama_jabatan: '' })
 
 const formTabs = [
-  { id: 'dasar',      label: 'Informasi Dasar' },
-  { id: 'fungsi',     label: 'Fungsi & Tugas'  },
-  { id: 'koordinasi', label: 'Koordinasi'      },
-  { id: 'dimensi',    label: 'Dimensi'         }
+  { id: 'dasar',         label: 'Informasi Dasar' },
+  { id: 'fungsi',        label: 'Fungsi & Tugas'  },
+  { id: 'koordinasi',    label: 'Koordinasi'      },
+  { id: 'persyaratan',   label: 'Persyaratan'     },
+  { id: 'dimensi',       label: 'Dimensi'         }
 ]
 
 const form = reactive({
@@ -369,7 +398,10 @@ const form = reactive({
   // Dimensi
   dimensi_finansial: { anggaran_operasional: '' },
   dimensi_non_finansial: '',
-  deskripsi_dimensi_finansial: ''
+  deskripsi_dimensi_finansial: '',
+
+  // Persyaratan Jabatan
+  persyaratan_jabatan: []
 })
 
 const parentOptions = computed(() =>
@@ -413,6 +445,10 @@ function addRow(type) {
   else form.relasi_eksternal.push({ pihak: '', aktivitas: '' })
 }
 
+function addPersyaratan() {
+  form.persyaratan_jabatan.push({ kompetensi_inti: '', level: '' })
+}
+
 function resetForm() {
   const e = modal.editingNode
   
@@ -446,6 +482,8 @@ function resetForm() {
   form.dimensi_finansial = e?.dimensi_finansial ? JSON.parse(JSON.stringify(e.dimensi_finansial)) : { anggaran_operasional: '' }
   form.dimensi_non_finansial = e?.dimensi_non_finansial || ''
   form.deskripsi_dimensi_finansial = e?.deskripsi_dimensi_finansial || ''
+  
+  form.persyaratan_jabatan = e?.persyaratan_jabatan ? JSON.parse(JSON.stringify(e.persyaratan_jabatan)) : []
   
   errors.nama_jabatan = ''
   keywordInput.value = ''
@@ -501,6 +539,13 @@ async function save() {
       
       koordinasi_internal: form.koordinasi_internal.filter(k => k.pihak),
       relasi_eksternal: form.relasi_eksternal.filter(r => r.pihak),
+      
+      persyaratan_jabatan: form.persyaratan_jabatan
+        .filter(p => p.kompetensi_inti.trim())
+        .map(p => ({
+          kompetensi_inti: p.kompetensi_inti.trim(),
+          level: (p.level || '').trim()
+        })),
       
       dimensi_finansial: form.dimensi_finansial,
       dimensi_non_finansial: form.dimensi_non_finansial.trim() || null,
