@@ -1,0 +1,285 @@
+<template>
+  <teleport to="body">
+    <transition name="modal">
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style="background:rgba(10,20,40,0.55);backdrop-filter:blur(6px)"
+        @click.self="modal.closeForm()">
+        <div class="modal-box bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden">
+
+          <!-- Header -->
+          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
+            <div>
+              <h2 class="text-base font-bold text-gray-900">{{ modal.editingNode ? 'Edit Jabatan' : 'Tambah Jabatan Baru' }}</h2>
+              <p class="text-xs text-gray-400 mt-0.5">{{ modal.editingNode ? 'Perbarui informasi jabatan' : 'Isi data jabatan baru' }}</p>
+            </div>
+            <button @click="modal.closeForm()" class="btn-icon">✕</button>
+          </div>
+
+          <!-- Form Tabs -->
+          <div class="flex border-b border-gray-200 bg-gray-50 flex-shrink-0">
+            <button v-for="tab in formTabs" :key="tab.id" @click="activeTab = tab.id"
+              :class="['px-5 py-3 text-xs font-semibold transition-all border-b-2 -mb-px',
+                activeTab === tab.id ? 'border-pelindo-blue text-pelindo-blue bg-white' : 'border-transparent text-gray-500 hover:text-gray-700']">
+              {{ tab.label }}
+            </button>
+          </div>
+
+          <!-- Form Body -->
+          <div class="flex-1 overflow-y-auto px-6 py-5">
+
+            <!-- TAB: Informasi Dasar -->
+            <div v-show="activeTab === 'dasar'" class="space-y-4">
+              <div class="grid grid-cols-2 gap-4">
+                <div class="col-span-2">
+                  <label class="form-label">Nama Jabatan <span class="text-red-500">*</span></label>
+                  <input v-model="form.title" placeholder="cth: Manajer Operasional TPK 1" :class="['form-input', errors.title ? 'error' : '']" />
+                  <p v-if="errors.title" class="form-error">{{ errors.title }}</p>
+                </div>
+                <div>
+                  <label class="form-label">Level Jabatan</label>
+                  <select v-model="form.level_label" class="form-select">
+                    <option value="">Pilih Level</option>
+                    <option value="LEVEL DIREKSI (BOD)">Direksi (BOD)</option>
+                    <option value="LEVEL BOD - 1">BOD - 1</option>
+                    <option value="LEVEL BOD - 2">BOD - 2</option>
+                    <option value="LEVEL BOD - 3">BOD - 3</option>
+                    <option value="LEVEL BOD - 4">BOD - 4</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label">Kode Jabatan</label>
+                  <input v-model="form.kode" placeholder="cth: DIR-OPS-001" class="form-input" />
+                </div>
+                <div>
+                  <label class="form-label">Nama Pejabat</label>
+                  <input v-model="form.person_name" placeholder="Nama lengkap" class="form-input" />
+                </div>
+                <div>
+                  <label class="form-label">Email</label>
+                  <input v-model="form.email" type="email" placeholder="jabatan@pelindo.co.id" class="form-input" />
+                </div>
+                <div>
+                  <label class="form-label">Divisi / Bidang</label>
+                  <input v-model="form.division" list="div-opts" placeholder="cth: Operasional" class="form-input" />
+                  <datalist id="div-opts">
+                    <option v-for="d in jabatan.divisions" :key="d" :value="d" />
+                  </datalist>
+                </div>
+                <div>
+                  <label class="form-label">Status</label>
+                  <select v-model="form.status" class="form-select">
+                    <option value="active">Aktif</option>
+                    <option value="inactive">Tidak Aktif</option>
+                  </select>
+                </div>
+                <div class="col-span-2">
+                  <label class="form-label">Parent Jabatan</label>
+                  <select v-model="form.parent_id" class="form-select">
+                    <option :value="null">— Root / Tidak ada parent —</option>
+                    <option v-for="n in parentOptions" :key="n.id" :value="n.id">{{ n.title }}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB: Fungsi & Tugas -->
+            <div v-show="activeTab === 'fungsi'" class="space-y-4">
+              <div>
+                <label class="form-label">Fungsi Jabatan</label>
+                <textarea v-model="form.fungsi" rows="3" placeholder="Deskripsikan fungsi utama jabatan..." class="form-textarea"></textarea>
+              </div>
+              <div>
+                <label class="form-label">Tugas & Tanggung Jawab <span class="text-gray-400 text-xs font-normal">(satu per baris)</span></label>
+                <textarea v-model="form.tugasRaw" rows="5" placeholder="- Menyusun laporan operasional&#10;- Koordinasi tim lapangan" class="form-textarea font-mono"></textarea>
+              </div>
+              <div>
+                <label class="form-label">Hasil yang Diharapkan <span class="text-gray-400 text-xs font-normal">(satu per baris)</span></label>
+                <textarea v-model="form.hasilRaw" rows="3" placeholder="- OEE > 85%&#10;- Zero accident" class="form-textarea font-mono"></textarea>
+              </div>
+              <div>
+                <label class="form-label">Wewenang <span class="text-gray-400 text-xs font-normal">(satu per baris)</span></label>
+                <textarea v-model="form.wewenangRaw" rows="3" placeholder="- Approval s/d Rp 100 juta" class="form-textarea font-mono"></textarea>
+              </div>
+            </div>
+
+            <!-- TAB: Koordinasi -->
+            <div v-show="activeTab === 'koordinasi'" class="space-y-5">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <label class="form-label mb-0">Koordinasi Internal</label>
+                  <button @click="addRow('internal')" type="button" class="text-xs text-pelindo-blue font-semibold hover:underline">+ Tambah</button>
+                </div>
+                <div class="space-y-2">
+                  <div v-for="(k, i) in form.koordinasi_internal" :key="i" class="flex gap-2 items-center">
+                    <input v-model="k.pihak" placeholder="Pihak internal" class="form-input flex-1 py-2 text-xs" />
+                    <input v-model="k.aktivitas" placeholder="Aktivitas" class="form-input flex-1 py-2 text-xs" />
+                    <button @click="form.koordinasi_internal.splice(i,1)" type="button" class="text-gray-300 hover:text-red-400 transition-colors">✕</button>
+                  </div>
+                  <p v-if="!form.koordinasi_internal.length" class="text-xs text-gray-400 italic">Belum ada data.</p>
+                </div>
+              </div>
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <label class="form-label mb-0">Relasi Eksternal</label>
+                  <button @click="addRow('eksternal')" type="button" class="text-xs text-pelindo-blue font-semibold hover:underline">+ Tambah</button>
+                </div>
+                <div class="space-y-2">
+                  <div v-for="(r, i) in form.relasi_eksternal" :key="i" class="flex gap-2 items-center">
+                    <input v-model="r.pihak" placeholder="Pihak eksternal" class="form-input flex-1 py-2 text-xs" />
+                    <input v-model="r.aktivitas" placeholder="Aktivitas" class="form-input flex-1 py-2 text-xs" />
+                    <button @click="form.relasi_eksternal.splice(i,1)" type="button" class="text-gray-300 hover:text-red-400 transition-colors">✕</button>
+                  </div>
+                  <p v-if="!form.relasi_eksternal.length" class="text-xs text-gray-400 italic">Belum ada data.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB: Dimensi -->
+            <div v-show="activeTab === 'dimensi'" class="space-y-4">
+              <div class="bg-emerald-50 rounded-xl p-4 border border-emerald-200">
+                <p class="text-xs font-bold text-emerald-700 mb-3">💰 Dimensi Finansial</p>
+                <div class="grid grid-cols-2 gap-3">
+                  <div><label class="text-xs font-medium text-gray-600 block mb-1">Anggaran Kelola</label>
+                    <input v-model="form.dimensi_finansial.anggaran" placeholder="Rp 100 Miliar/tahun" class="w-full border border-emerald-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-emerald-400 bg-white" /></div>
+                  <div><label class="text-xs font-medium text-gray-600 block mb-1">Batas Approval</label>
+                    <input v-model="form.dimensi_finansial.approval" placeholder="Rp 500 Juta" class="w-full border border-emerald-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-emerald-400 bg-white" /></div>
+                </div>
+              </div>
+              <div class="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                <p class="text-xs font-bold text-blue-700 mb-3">📊 Dimensi Non-Finansial</p>
+                <div class="grid grid-cols-2 gap-3">
+                  <div><label class="text-xs font-medium text-gray-600 block mb-1">Jumlah Bawahan</label>
+                    <input v-model="form.dimensi_non_finansial.bawahan" placeholder="cth: 50 orang" class="w-full border border-blue-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-400 bg-white" /></div>
+                  <div><label class="text-xs font-medium text-gray-600 block mb-1">Cakupan Wilayah</label>
+                    <input v-model="form.dimensi_non_finansial.wilayah" placeholder="cth: Wilayah 1" class="w-full border border-blue-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-400 bg-white" /></div>
+                  <div class="col-span-2"><label class="text-xs font-medium text-gray-600 block mb-1">KPI Utama</label>
+                    <input v-model="form.dimensi_non_finansial.kpi" placeholder="cth: Throughput > 500K TEUs" class="w-full border border-blue-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-400 bg-white" /></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+            <p class="text-xs text-gray-400">* Wajib diisi</p>
+            <div class="flex gap-2">
+              <button @click="modal.closeForm()" class="btn-secondary">Batal</button>
+              <button @click="save" :disabled="saving" class="btn-primary">
+                <svg v-if="saving" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                {{ modal.editingNode ? 'Perbarui' : 'Simpan Jabatan' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+  </teleport>
+</template>
+
+<script setup>
+import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { useJabatanStore } from '@/stores/jabatan.store'
+import { useModalStore }   from '@/stores/modal.store'
+import { useToastStore }   from '@/stores/toast.store'
+
+const jabatan = useJabatanStore()
+const modal   = useModalStore()
+const toast   = useToastStore()
+
+const saving    = ref(false)
+const activeTab = ref('dasar')
+const errors    = reactive({ title: '' })
+
+const formTabs = [
+  { id: 'dasar',      label: 'Informasi Dasar' },
+  { id: 'fungsi',     label: 'Fungsi & Tugas'  },
+  { id: 'koordinasi', label: 'Koordinasi'      },
+  { id: 'dimensi',    label: 'Dimensi'         }
+]
+
+const form = reactive({
+  title: '', level_label: '', kode: '', person_name: '', email: '',
+  division: '', status: 'active', parent_id: null, fungsi: '',
+  tugasRaw: '', hasilRaw: '', wewenangRaw: '',
+  koordinasi_internal: [], relasi_eksternal: [],
+  dimensi_finansial: { anggaran: '', approval: '' },
+  dimensi_non_finansial: { bawahan: '', wilayah: '', kpi: '' }
+})
+
+const parentOptions = computed(() =>
+  jabatan.nodes.filter(n => !modal.editingNode || n.id !== modal.editingNode.id)
+)
+
+function parseLine(raw) {
+  return (raw || '').split('\n').map(s => s.trim().replace(/^[-•*]\s*/, '')).filter(Boolean)
+}
+
+function resetForm() {
+  const e = modal.editingNode
+  form.title       = e?.title        || ''
+  form.level_label = e?.level_label  || ''
+  form.kode        = e?.kode         || ''
+  form.person_name = e?.person_name  || ''
+  form.email       = e?.email        || ''
+  form.division    = e?.division     || ''
+  form.status      = e?.status       || 'active'
+  form.parent_id   = e?.parent_id    ?? modal.defaultParent ?? null
+  form.fungsi      = e?.fungsi       || ''
+  form.tugasRaw    = (e?.tugas    || []).join('\n')
+  form.hasilRaw    = (e?.hasil    || []).join('\n')
+  form.wewenangRaw = (e?.wewenang || []).join('\n')
+  form.koordinasi_internal = e?.koordinasi_internal ? e.koordinasi_internal.map(k => ({...k})) : []
+  form.relasi_eksternal    = e?.relasi_eksternal    ? e.relasi_eksternal.map(r => ({...r}))    : []
+  form.dimensi_finansial     = { anggaran: '', approval: '', ...(e?.dimensi_finansial || {}) }
+  form.dimensi_non_finansial = { bawahan: '', wilayah: '', kpi: '', ...(e?.dimensi_non_finansial || {}) }
+  errors.title = ''
+  activeTab.value = 'dasar'
+}
+
+onMounted(resetForm)
+watch(() => modal.show, v => { if (v) resetForm() })
+
+function addRow(type) {
+  if (type === 'internal') form.koordinasi_internal.push({ pihak: '', aktivitas: '' })
+  else form.relasi_eksternal.push({ pihak: '', aktivitas: '' })
+}
+
+async function save() {
+  errors.title = ''
+  if (!form.title.trim()) { errors.title = 'Nama jabatan wajib diisi'; activeTab.value = 'dasar'; return }
+  saving.value = true
+  try {
+    const payload = {
+      title:       form.title.trim(),
+      level_label: form.level_label,
+      kode:        form.kode.trim() || null,
+      person_name: form.person_name.trim() || null,
+      email:       form.email.trim() || null,
+      division:    form.division.trim() || null,
+      status:      form.status,
+      parent_id:   form.parent_id,
+      fungsi:      form.fungsi.trim() || null,
+      tugas:       parseLine(form.tugasRaw),
+      hasil:       parseLine(form.hasilRaw),
+      wewenang:    parseLine(form.wewenangRaw),
+      koordinasi_internal: form.koordinasi_internal.filter(k => k.pihak),
+      relasi_eksternal:    form.relasi_eksternal.filter(r => r.pihak),
+      dimensi_finansial:     form.dimensi_finansial,
+      dimensi_non_finansial: form.dimensi_non_finansial
+    }
+    if (modal.editingNode) {
+      await jabatan.update(modal.editingNode.id, payload)
+      toast.success('Jabatan berhasil diperbarui')
+    } else {
+      const created = await jabatan.create(payload)
+      jabatan.selectNode(created)
+      toast.success('Jabatan baru berhasil ditambahkan')
+    }
+    modal.closeForm()
+  } catch (err) {
+    toast.error(err.message || 'Gagal menyimpan jabatan')
+  } finally {
+    saving.value = false
+  }
+}
+</script>
