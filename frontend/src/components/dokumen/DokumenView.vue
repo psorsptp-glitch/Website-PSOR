@@ -63,21 +63,22 @@
       <div v-else id="uraian-jabatan-doc"
         class="max-w-xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden print-area">
 
-        <!-- Document header with Pelindo branding -->
-        <div class="border-b-2 border-gray-800 px-8 py-0.5 flex items-center justify-between bg-white">
-          <div>
+        <!-- Document header with title and line -->
+        <div class="px-8 pt-4 pb-1">
+          <!-- Text and Logo side-by-side, aligned at bottom -->
+          <div class="flex justify-between items-end mb-1">
             <p class="text-xs font-black text-black tracking-wide">Uraian Jabatan</p>
-          </div>
-          <div class="flex items-right">
             <img
               :src="logoPelindo"
               alt="Pelindo Logo"
               class="w-15 h-20 object-contain rounded-xl"
             />
           </div>
+          <!-- Garis - dibawah keduanya -->
+          <div class="border-b-2 border-gray-800"></div>
         </div>
 
-        <div class="px-8 py-6 space-y-6">
+        <div class="px-8 py-3 space-y-6">
 
           <!-- I. IDENTITAS JABATAN -->
           <section>
@@ -309,7 +310,7 @@
           <!-- III. FUNGSI JABATAN -->
           <section>
             <h2 class="doc-section-title">III. FUNGSI JABATAN</h2>
-            <div class="border border-gray-400 p-4 text-sm text-gray-800 leading-relaxed min-h-[80px]">
+            <div class="border border-gray-400 p-4 text-sm text-gray-800 leading-relaxed min-h-[80px] text-justify">
               {{ selectedNode.fungsi_jabatan || selectedNode.fungsi || '—' }}
             </div>
           </section>
@@ -329,8 +330,8 @@
                 <template v-if="selectedNode.tugas_tanggung_jawab?.length">
                   <tr v-for="(tugas, i) in selectedNode.tugas_tanggung_jawab" :key="i" class="align-top">
                     <td class="border border-gray-400 px-3 py-2 text-center">{{ i + 1 }}.</td>
-                    <td class="border border-gray-400 px-3 py-2">{{ tugas.deskripsi_tugas }}</td>
-                    <td class="border border-gray-400 px-3 py-2">
+                    <td class="border border-gray-400 px-3 py-2 text-justify">{{ tugas.deskripsi_tugas }}</td>
+                    <td class="border border-gray-400 px-3 py-2 text-justify">
                       <div v-if="tugas.hasil_diharapkan?.length" class="space-y-1">
                         <div v-for="(hasil, hIdx) in tugas.hasil_diharapkan" :key="hIdx" class="flex items-start gap-2">
                           <span class="flex-shrink-0">•</span>
@@ -363,8 +364,8 @@
                 <template v-if="selectedNode.tugas_tanggung_jawab_umum?.length">
                   <tr v-for="(tugas, i) in selectedNode.tugas_tanggung_jawab_umum" :key="i" class="align-top">
                     <td class="border border-gray-400 px-3 py-2 text-center">{{ i + 1 }}.</td>
-                    <td class="border border-gray-400 px-3 py-2">{{ tugas.deskripsi_tugas }}</td>
-                    <td class="border border-gray-400 px-3 py-2">
+                    <td class="border border-gray-400 px-3 py-2 text-justify">{{ tugas.deskripsi_tugas }}</td>
+                    <td class="border border-gray-400 px-3 py-2 text-justify">
                       <div v-if="tugas.hasil_diharapkan?.length" class="space-y-1">
                         <div v-for="(hasil, hIdx) in tugas.hasil_diharapkan" :key="hIdx" class="flex items-start gap-2">
                           <span class="flex-shrink-0">•</span>
@@ -389,13 +390,13 @@
               <thead>
                 <tr class="bg-gray-100">
                   <th class="border border-gray-400 px-3 py-2 text-center font-bold w-10">No.</th>
-                  <th class="border border-gray-400 px-3 py-2 text-left font-bold">Kewenangan</th>
+                  <th class="border border-gray-400 px-3 py-2 text-center font-bold">Wewenang</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="(w, i) in (selectedNode.wewenang || [])" :key="i">
                   <td class="border border-gray-400 px-3 py-2 text-center">{{ i + 1 }}.</td>
-                  <td class="border border-gray-400 px-3 py-2">{{ w }}</td>
+                  <td class="border border-gray-400 px-3 py-2 text-justify">{{ w }}</td>
                 </tr>
                 <tr v-if="!(selectedNode.wewenang?.length)">
                   <td colspan="2" class="border border-gray-400 px-3 py-3 text-center text-gray-400 italic">Belum ada data wewenang</td>
@@ -410,14 +411,14 @@
             <table class="w-full border-collapse text-sm">
               <thead>
                 <tr class="bg-gray-100">
-                  <th class="border border-gray-400 px-3 py-2 text-left font-bold w-2/5">Pihak Internal</th>
-                  <th class="border border-gray-400 px-3 py-2 text-left font-bold">Aktivitas</th>
+                  <th class="border border-gray-400 px-3 py-2 text-center font-bold w-2/5">Pihak Internal</th>
+                  <th class="border border-gray-400 px-3 py-2 text-center font-bold">Aktivitas</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="(k, i) in (selectedNode.koordinasi_internal || [])" :key="i">
-                  <td class="border border-gray-400 px-3 py-2">{{ k.pihak }}</td>
-                  <td class="border border-gray-400 px-3 py-2">{{ k.aktivitas }}</td>
+                  <td class="border border-gray-400 px-3 py-2 text-justify">{{ k.pihak }}</td>
+                  <td class="border border-gray-400 px-3 py-2 text-justify">{{ k.aktivitas }}</td>
                 </tr>
                 <tr v-if="!(selectedNode.koordinasi_internal?.length)">
                   <td colspan="2" class="border border-gray-400 px-3 py-3 text-center text-gray-400 italic">Belum ada data koordinasi internal</td>
@@ -433,14 +434,14 @@
             <table class="w-full border-collapse text-sm">
               <thead>
                 <tr class="bg-gray-100">
-                  <th class="border border-gray-400 px-3 py-2 text-left font-bold w-2/5">Pihak Eksternal</th>
-                  <th class="border border-gray-400 px-3 py-2 text-left font-bold">Aktivitas</th>
+                  <th class="border border-gray-400 px-3 py-2 text-center font-bold w-2/5">Pihak Eksternal</th>
+                  <th class="border border-gray-400 px-3 py-2 font-bold text-center">Aktivitas</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="(r, i) in (selectedNode.relasi_eksternal || [])" :key="i">
-                  <td class="border border-gray-400 px-3 py-2">{{ r.pihak }}</td>
-                  <td class="border border-gray-400 px-3 py-2">{{ r.aktivitas }}</td>
+                  <td class="border border-gray-400 px-3 py-2 text-justify">{{ r.pihak }}</td>
+                  <td class="border border-gray-400 px-3 py-2 text-justify">{{ r.aktivitas }}</td>
                 </tr>
                 <tr v-if="!(selectedNode.relasi_eksternal?.length)">
                   <td colspan="2" class="border border-gray-400 px-3 py-3 text-center text-gray-400 italic">Belum ada data relasi eksternal</td>
@@ -462,13 +463,13 @@
               <tbody>
                 <tr class="align-top">
                   <td class="border border-gray-400 px-3 py-3 w-1/2">
-                    <div v-if="selectedNode.dimensi_finansial?.anggaran_operasional" class="text-sm text-gray-800 leading-relaxed">
+                    <div v-if="selectedNode.dimensi_finansial?.anggaran_operasional" class="text-sm text-justify text-gray-800 leading-relaxed">
                       {{ selectedNode.dimensi_finansial.anggaran_operasional }}
                     </div>
                     <span v-else class="text-gray-400 italic">Belum ada data finansial</span>
                   </td>
                   <td class="border border-gray-400 px-3 py-3">
-                    <div v-if="selectedNode.dimensi_non_finansial" class="text-sm text-gray-800 leading-relaxed">
+                    <div v-if="selectedNode.dimensi_non_finansial" class="text-sm text-justify text-gray-800 leading-relaxed">
                       {{ selectedNode.dimensi_non_finansial }}
                     </div>
                     <span v-else class="text-gray-400 italic">Belum ada data non-finansial</span>
@@ -494,7 +495,7 @@
                 <template v-if="selectedNode?.persyaratan_jabatan?.length">
                   <tr v-for="(item, idx) in selectedNode.persyaratan_jabatan" :key="idx" class="align-top">
                     <td class="border border-gray-400 px-3 py-2 text-center">{{ idx + 1 }}.</td>
-                    <td class="border border-gray-400 px-3 py-2">{{ item.kompetensi_inti }}</td>
+                    <td class="border border-gray-400 px-3 py-2 text-justify">{{ item.kompetensi_inti }}</td>
                     <td class="border border-gray-400 px-3 py-2 text-center">{{ item.level }}</td>
                   </tr>
                 </template>
