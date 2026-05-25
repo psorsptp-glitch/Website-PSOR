@@ -474,8 +474,7 @@ export const createSDM = async (req, res) => {
     const selisih_ideal = jumlah - (payload.ideal || 0);
     const selisih_min = jumlah - (payload.min_req || 0);
 
-    // Build insert payload - only include fields that backend schema supports
-    // Note: kategori field may not exist in schema yet, will add via migration
+    // Build insert payload - CORE FIELDS ONLY (these must exist in database)
     const insertPayload = {
       terminal_id: payload.terminal_id || null,
       tahun_ref: payload.tahun_ref || new Date().getFullYear(),
@@ -484,26 +483,22 @@ export const createSDM = async (req, res) => {
       jumlah_alat: payload.jumlah_alat || 0,
       ideal: payload.ideal || 0,
       min_req: payload.min_req || 0,
-      shift: payload.shift || 0,
-      group_count: payload.group_count || 0,
       organik: payload.organik || 0,
       tad: payload.tad || 0,
       pemborongan: payload.pemborongan || 0,
       jumlah,
       selisih_ideal,
       selisih_min,
-      keterangan: payload.keterangan || '',
-      keterangan_lanjutan: payload.keterangan_lanjutan || '',
       level: payload.level !== undefined ? payload.level : 0,
       urutan: payload.urutan || 0,
-      status: 'active',
     };
 
-    // Try to include kategori only if it's provided and not empty
-    // This allows graceful migration - works with or without kategori column
-    if (payload.kategori && payload.kategori.trim()) {
-      insertPayload.kategori = payload.kategori;
-    }
+    // Add optional fields if provided
+    if (payload.shift !== undefined && payload.shift !== null) insertPayload.shift = payload.shift;
+    if (payload.group_count !== undefined && payload.group_count !== null) insertPayload.group_count = payload.group_count;
+    if (payload.keterangan) insertPayload.keterangan = payload.keterangan;
+    if (payload.keterangan_lanjutan) insertPayload.keterangan_lanjutan = payload.keterangan_lanjutan;
+    if (payload.kategori && payload.kategori.trim()) insertPayload.kategori = payload.kategori;
 
     console.log('💾 Prepared insert payload:', JSON.stringify(insertPayload, null, 2));
 
@@ -514,36 +509,45 @@ export const createSDM = async (req, res) => {
       .single();
 
     if (error) {
-      console.error('❌ Supabase insert error:', {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-      });
+      console.error('❌ Insert error:', { code: error.code, message: error.message });
       
-      // Special handling for missing column error
-      if (error.message && error.message.includes('kategori')) {
-        console.warn('⚠️  Kategori column not found in database. Retrying without kategori field...');
-        // Remove kategori and retry
-        delete insertPayload.kategori;
+      // If error due to missing optional column, retry with ONLY core fields
+      if (error.message && error.message.includes('Could not find')) {
+        console.warn('⚠️  Optional column missing. Retrying with minimal fields...');
+        
+        const coreOnly = {
+          terminal_id: insertPayload.terminal_id,
+          tahun_ref: insertPayload.tahun_ref,
+          parent_id: insertPayload.parent_id,
+          nama_jabatan: insertPayload.nama_jabatan,
+          jumlah_alat: insertPayload.jumlah_alat,
+          ideal: insertPayload.ideal,
+          min_req: insertPayload.min_req,
+          organik: insertPayload.organik,
+          tad: insertPayload.tad,
+          pemborongan: insertPayload.pemborongan,
+          jumlah: insertPayload.jumlah,
+          selisih_ideal: insertPayload.selisih_ideal,
+          selisih_min: insertPayload.selisih_min,
+          level: insertPayload.level,
+          urutan: insertPayload.urutan,
+        };
+        
         const { data: retryData, error: retryError } = await supabase
           .from('swp_sdm_structure')
-          .insert(insertPayload)
+          .insert(coreOnly)
           .select()
           .single();
         
-        if (retryError) {
-          throw retryError;
+        if (!retryError) {
+          console.log('✅ SDM created (retry with core fields):', retryData);
+          return res.status(201).json({ success: true, data: retryData });
         }
-        console.log('✅ SDM created successfully (without kategori):', retryData);
-        return res.status(201).json({ success: true, data: retryData });
       }
       
       return res.status(400).json({ 
         success: false, 
-        message: error.message || 'Database error',
-        code: error.code,
-        details: error.details,
+        message: error.message || 'Database insert failed',
       });
     }
     console.log('✅ SDM created successfully:', data);
