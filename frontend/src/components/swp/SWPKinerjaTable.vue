@@ -196,10 +196,10 @@
               </template>
               <template v-else>
                 <button class="btn-icon btn-edit" title="Edit" @click="startEdit(row)">
-                  <img src="../../assets/img/edit.png" alt="Edit" class="action-icon" />
+                  <img :src="editIcon" alt="Edit" class="action-icon" />
                 </button>
                 <button class="btn-icon btn-del" title="Hapus" @click="confirmDelete(row)">
-                  <img src="../../assets/img/trash.png" alt="Hapus" class="action-icon" />
+                  <img :src="trashIcon" alt="Hapus" class="action-icon" />
                 </button>
               </template>
             </td>
@@ -325,6 +325,8 @@ import { ref, computed } from 'vue';
 import { useSwpStore } from '@/stores/swp.store';
 import TrendLineChart from './TrendLineChart.vue';
 import IndividualTrendChart from './IndividualTrendChart.vue';
+import editIcon from '@/assets/img/edit.png';
+import trashIcon from '@/assets/img/trash.png';
 
 const store = useSwpStore();
 

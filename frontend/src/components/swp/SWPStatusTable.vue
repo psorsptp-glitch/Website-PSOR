@@ -236,6 +236,8 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useSwpStore } from '@/stores/swp.store';
+import editIcon from '@/assets/img/edit.png';
+import trashIcon from '@/assets/img/trash.png';
 
 const store = useSwpStore();
 
