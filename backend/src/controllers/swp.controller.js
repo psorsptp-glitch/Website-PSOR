@@ -469,12 +469,8 @@ export const createSDM = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Nama jabatan is required' });
     }
 
-    // Hitung jumlah dari komponen SDM
-    const jumlah = (payload.organik || 0) + (payload.tad || 0) + (payload.pemborongan || 0);
-    const selisih_ideal = jumlah - (payload.ideal || 0);
-    const selisih_min = jumlah - (payload.min_req || 0);
-
     // Build insert payload - CORE FIELDS ONLY (these must exist in database)
+    // Note: jumlah, selisih_ideal, selisih_min are GENERATED/COMPUTED by database
     const insertPayload = {
       terminal_id: payload.terminal_id || null,
       tahun_ref: payload.tahun_ref || new Date().getFullYear(),
@@ -486,9 +482,6 @@ export const createSDM = async (req, res) => {
       organik: payload.organik || 0,
       tad: payload.tad || 0,
       pemborongan: payload.pemborongan || 0,
-      jumlah,
-      selisih_ideal,
-      selisih_min,
       level: payload.level !== undefined ? payload.level : 0,
       urutan: payload.urutan || 0,
     };
@@ -526,9 +519,6 @@ export const createSDM = async (req, res) => {
           organik: insertPayload.organik,
           tad: insertPayload.tad,
           pemborongan: insertPayload.pemborongan,
-          jumlah: insertPayload.jumlah,
-          selisih_ideal: insertPayload.selisih_ideal,
-          selisih_min: insertPayload.selisih_min,
           level: insertPayload.level,
           urutan: insertPayload.urutan,
         };
