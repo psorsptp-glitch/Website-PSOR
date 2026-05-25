@@ -1,9 +1,7 @@
 // stores/swp.store.js
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import axios from 'axios';
-
-const API = import.meta.env.VITE_API_URL || '/api';
+import api from '@/utils/api.js';
 
 export const useSwpStore = defineStore('swp', () => {
 
@@ -103,8 +101,8 @@ export const useSwpStore = defineStore('swp', () => {
   // ── TERMINALS ──────────────────────────────────────────────
   async function fetchTerminals() {
     try {
-      const { data } = await axios.get(`${API}/swp/terminals`);
-      terminals.value = data.data || [];
+      const response = await api.get('/swp/terminals');
+      terminals.value = response.data || [];
       if (terminals.value.length && !selectedTerminalId.value) {
         selectedTerminalId.value = terminals.value[0].id;
       }
@@ -119,8 +117,8 @@ export const useSwpStore = defineStore('swp', () => {
     loading.value = true;
     error.value   = null;
     try {
-      const { data } = await axios.get(`${API}/swp/all`, { params: currentParams() });
-      const d = data.data;
+      const response = await api.get('/swp/all', { params: currentParams() });
+      const d = response.data;
       kinerja.value          = d.kinerja       || { keuangan: [], operasional: [], sdm: [] };
       periodColumns.value    = d.periodColumns  || [];
       fasilitas.value        = d.fasilitas      || [];
@@ -142,9 +140,9 @@ export const useSwpStore = defineStore('swp', () => {
     if (!selectedTerminalId.value) return;
     loading.value = true;
     try {
-      const { data } = await axios.get(`${API}/swp/kinerja`, { params: currentParams() });
-      kinerja.value       = data.data         || { keuangan: [], operasional: [], sdm: [] };
-      periodColumns.value = data.periodColumns || [];
+      const response = await api.get('/swp/kinerja', { params: currentParams() });
+      kinerja.value       = response.data         || { keuangan: [], operasional: [], sdm: [] };
+      periodColumns.value = response.periodColumns || [];
     } catch (e) { error.value = e.message; }
     finally { loading.value = false; }
   }
@@ -153,9 +151,9 @@ export const useSwpStore = defineStore('swp', () => {
     if (!selectedTerminalId.value) return;
     loading.value = true;
     try {
-      const { data } = await axios.get(`${API}/swp/fasilitas`, { params: currentParams() });
-      fasilitas.value        = data.data    || [];
-      fasilitasGrouped.value = data.grouped || buildGrouped(data.data);
+      const response = await api.get('/swp/fasilitas', { params: currentParams() });
+      fasilitas.value        = response.data    || [];
+      fasilitasGrouped.value = response.grouped || buildGrouped(response.data);
     } catch (e) { error.value = e.message; }
     finally { loading.value = false; }
   }
@@ -163,8 +161,8 @@ export const useSwpStore = defineStore('swp', () => {
   async function fetchShift() {
     if (!selectedTerminalId.value) return;
     try {
-      const { data } = await axios.get(`${API}/swp/shift`, { params: currentParams() });
-      shift.value = data.data || [];
+      const response = await api.get('/swp/shift', { params: currentParams() });
+      shift.value = response.data || [];
     } catch (e) { error.value = e.message; }
   }
 
@@ -172,9 +170,9 @@ export const useSwpStore = defineStore('swp', () => {
     if (!selectedTerminalId.value) return;
     loading.value = true;
     try {
-      const { data } = await axios.get(`${API}/swp/sdm`, { params: currentParams() });
-      sdm.value           = data.data       || [];
-      sdmGrandTotal.value = data.grandTotal || {};
+      const response = await api.get('/swp/sdm', { params: currentParams() });
+      sdm.value           = response.data       || [];
+      sdmGrandTotal.value = response.grandTotal || {};
     } catch (e) { error.value = e.message; }
     finally { loading.value = false; }
   }
@@ -183,131 +181,131 @@ export const useSwpStore = defineStore('swp', () => {
     if (!selectedTerminalId.value) return;
     loading.value = true;
     try {
-      const { data } = await axios.get(`${API}/swp/status`, { params: currentParams() });
-      status.value      = data.data  || [];
-      statusTotal.value = data.total || calcStatusTotal(data.data);
+      const response = await api.get('/swp/status', { params: currentParams() });
+      status.value      = response.data  || [];
+      statusTotal.value = response.total || calcStatusTotal(response.data);
     } catch (e) { error.value = e.message; }
     finally { loading.value = false; }
   }
 
   // ── KINERJA CRUD ───────────────────────────────────────────
   async function createKinerja(payload) {
-    const { data } = await axios.post(`${API}/swp/kinerja`, {
+    const response = await api.post('/swp/kinerja', {
       ...payload, terminal_id: selectedTerminalId.value,
       tahun_ref: selectedTahun.value, bulan_ref: selectedBulan.value,
     });
     await fetchKinerja();
-    return data;
+    return response;
   }
 
   async function updateKinerja(id, payload) {
-    const { data } = await axios.put(`${API}/swp/kinerja/${id}`, payload);
+    const response = await api.put(`/swp/kinerja/${id}`, payload);
     const cat = payload.category;
     const idx = kinerja.value[cat]?.findIndex(r => r.id === id);
     if (idx !== undefined && idx >= 0) {
-      kinerja.value[cat][idx] = { ...kinerja.value[cat][idx], ...data.data };
+      kinerja.value[cat][idx] = { ...kinerja.value[cat][idx], ...response.data };
     }
-    return data;
+    return response;
   }
 
   async function updateKinerjaPeriod(id, category, period_key, value) {
-    const { data } = await axios.patch(`${API}/swp/kinerja/${id}/period`, { period_key, value });
+    const response = await api.patch(`/swp/kinerja/${id}/period`, { period_key, value });
     const idx = kinerja.value[category]?.findIndex(r => r.id === id);
     if (idx !== undefined && idx >= 0) {
-      kinerja.value[category][idx] = { ...kinerja.value[category][idx], ...data.data };
+      kinerja.value[category][idx] = { ...kinerja.value[category][idx], ...response.data };
     }
-    return data;
+    return response;
   }
 
   async function deleteKinerja(id, category) {
-    await axios.delete(`${API}/swp/kinerja/${id}`);
+    await api.delete(`/swp/kinerja/${id}`);
     kinerja.value[category] = kinerja.value[category].filter(r => r.id !== id);
   }
 
   // ── FASILITAS CRUD ─────────────────────────────────────────
   async function createFasilitas(payload) {
-    const { data } = await axios.post(`${API}/swp/fasilitas`, {
+    const response = await api.post('/swp/fasilitas', {
       ...payload, terminal_id: selectedTerminalId.value, tahun_ref: selectedTahun.value,
     });
     await fetchFasilitas();
-    return data;
+    return response;
   }
 
   async function updateFasilitas(id, payload) {
-    const { data } = await axios.put(`${API}/swp/fasilitas/${id}`, payload);
+    const response = await api.put(`/swp/fasilitas/${id}`, payload);
     const idx = fasilitas.value.findIndex(r => r.id === id);
-    if (idx >= 0) fasilitas.value[idx] = { ...fasilitas.value[idx], ...data.data };
+    if (idx >= 0) fasilitas.value[idx] = { ...fasilitas.value[idx], ...response.data };
     fasilitasGrouped.value = buildGrouped(fasilitas.value);
-    return data;
+    return response;
   }
 
   async function deleteFasilitas(id) {
-    await axios.delete(`${API}/swp/fasilitas/${id}`);
+    await api.delete(`/swp/fasilitas/${id}`);
     fasilitas.value        = fasilitas.value.filter(r => r.id !== id);
     fasilitasGrouped.value = buildGrouped(fasilitas.value);
   }
 
   // ── SHIFT CRUD ─────────────────────────────────────────────
   async function createShift(payload) {
-    const { data } = await axios.post(`${API}/swp/shift`, {
+    const response = await api.post('/swp/shift', {
       ...payload, terminal_id: selectedTerminalId.value, tahun_ref: selectedTahun.value,
     });
-    shift.value.push(data.data);
-    return data;
+    shift.value.push(response.data);
+    return response;
   }
 
   async function updateShift(id, payload) {
-    const { data } = await axios.put(`${API}/swp/shift/${id}`, payload);
+    const response = await api.put(`/swp/shift/${id}`, payload);
     const idx = shift.value.findIndex(r => r.id === id);
-    if (idx >= 0) shift.value[idx] = { ...shift.value[idx], ...data.data };
-    return data;
+    if (idx >= 0) shift.value[idx] = { ...shift.value[idx], ...response.data };
+    return response;
   }
 
   async function deleteShift(id) {
-    await axios.delete(`${API}/swp/shift/${id}`);
+    await api.delete(`/swp/shift/${id}`);
     shift.value = shift.value.filter(r => r.id !== id);
   }
 
   // ── SDM CRUD ───────────────────────────────────────────────
   async function createSDM(payload) {
-    const { data } = await axios.post(`${API}/swp/sdm`, {
+    const response = await api.post('/swp/sdm', {
       ...payload, terminal_id: selectedTerminalId.value, tahun_ref: selectedTahun.value,
     });
     await fetchSDM();
-    return data;
+    return response;
   }
 
   async function updateSDM(id, payload) {
-    await axios.put(`${API}/swp/sdm/${id}`, payload);
+    await api.put(`/swp/sdm/${id}`, payload);
     await fetchSDM();
   }
 
   async function deleteSDM(id) {
-    await axios.delete(`${API}/swp/sdm/${id}`);
+    await api.delete(`/swp/sdm/${id}`);
     await fetchSDM();
   }
 
   // ── STATUS CRUD ────────────────────────────────────────────
   async function createStatus(payload) {
-    const { data } = await axios.post(`${API}/swp/status`, {
+    const response = await api.post('/swp/status', {
       ...payload, terminal_id: selectedTerminalId.value,
       tahun_ref: selectedTahun.value, bulan_ref: selectedBulan.value,
     });
-    status.value.push(data.data);
+    status.value.push(response.data);
     statusTotal.value = calcStatusTotal(status.value);
-    return data;
+    return response;
   }
 
   async function updateStatus(id, payload) {
-    const { data } = await axios.put(`${API}/swp/status/${id}`, payload);
+    const response = await api.put(`/swp/status/${id}`, payload);
     const idx = status.value.findIndex(r => r.id === id);
-    if (idx >= 0) status.value[idx] = { ...status.value[idx], ...data.data };
+    if (idx >= 0) status.value[idx] = { ...status.value[idx], ...response.data };
     statusTotal.value = calcStatusTotal(status.value);
-    return data;
+    return response;
   }
 
   async function deleteStatus(id) {
-    await axios.delete(`${API}/swp/status/${id}`);
+    await api.delete(`/swp/status/${id}`);
     status.value      = status.value.filter(r => r.id !== id);
     statusTotal.value = calcStatusTotal(status.value);
   }
