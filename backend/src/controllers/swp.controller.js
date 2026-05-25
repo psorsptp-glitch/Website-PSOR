@@ -570,7 +570,7 @@ export const updateSDM = async (req, res) => {
     // Verify record exists first
     const { data: existing, error: fetchErr } = await supabase
       .from('swp_sdm_structure')
-      .select('id, organik, tad, pemborongan, ideal, min_req')
+      .select('id')
       .eq('id', id);
 
     if (fetchErr) {
@@ -583,18 +583,18 @@ export const updateSDM = async (req, res) => {
       return res.status(404).json({ success: false, message: `Record with ID ${id} not found` });
     }
 
-    // Auto-recalculate jika ada perubahan nilai SDM
-    const needsRecalc = ['organik', 'tad', 'pemborongan'].some(k => k in payload);
-    if (needsRecalc) {
-      const current = existing[0];
-      const merged = { ...current, ...payload };
-      payload.jumlah = (merged.organik || 0) + (merged.tad || 0) + (merged.pemborongan || 0);
-      console.log('   Recalculated jumlah:', payload.jumlah);
+    // IMPORTANT: Do NOT include 'jumlah' in payload
+    // 'jumlah' is a COMPUTED field (GENERATED or TRIGGER-calculated)
+    // Remove it to let database auto-calculate
+    const updatePayload = { ...payload };
+    if ('jumlah' in updatePayload) {
+      console.log('   ℹ️  Removing jumlah from payload (computed field)');
+      delete updatePayload.jumlah;
     }
 
     const { data, error } = await supabase
       .from('swp_sdm_structure')
-      .update(payload)
+      .update(updatePayload)
       .eq('id', id)
       .select();
 
