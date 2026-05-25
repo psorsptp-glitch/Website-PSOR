@@ -142,8 +142,6 @@
       </template>
       <template v-else>
         <button class="btn-icon" title="Edit" @click="$emit('start-edit', node)">✏️</button>
-        <!-- Only level-0 (nomenklatur) can have children added -->
-        <button v-if="node.level === 0" class="btn-icon" title="Tambah Sub-Jabatan" @click="$emit('add-child', node)">➕</button>
         <button class="btn-icon btn-del" title="Hapus" @click="$emit('delete', node)">🗑️</button>
       </template>
     </td>

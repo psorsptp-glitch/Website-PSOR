@@ -3,7 +3,7 @@
   <div class="sdm-wrap">
     <!-- Toolbar -->
     <div class="sdm-toolbar">
-      <button class="btn btn-primary" @click="openAddModal(null)">+ Tambah Nomenklatur</button>
+      <button class="btn btn-primary" @click="openAddModal(null)">+ Tambah Jabatan</button>
       <button class="btn btn-outline" @click="toggleAll">
         {{ allExpanded ? '⊟ Tutup Semua' : '⊞ Buka Semua' }}
       </button>
@@ -63,21 +63,38 @@
           </tr>
         </thead>
         <tbody>
-          <!-- Tree rendering (recursive) -->
-          <template v-for="node in store.sdm" :key="node.id">
-            <SDMTreeRow
-              :node="node"
-              :depth="0"
-              :expanded-ids="expandedIds"
-              :editing-id="editingId"
-              :edit-form="editForm"
-              @toggle="toggleNode"
-              @start-edit="startEdit"
-              @save-edit="saveEdit"
-              @cancel-edit="cancelEdit"
-              @add-child="openAddModal"
-              @delete="confirmDelete"
-            />
+          <!-- Category Header and Items -->
+          <template v-for="(items, kategori) in store.sdmGrouped" :key="kategori">
+            <!-- Category header -->
+            <tr class="row-kategori">
+              <td colspan="15" class="td-kategori">
+                <button class="toggle-btn" @click="toggleKategori(kategori)">
+                  {{ displayExpanded.has(kategori) ? '▾' : '▸' }}
+                </button>
+                <strong>{{ kategori }}</strong>
+                <span class="kategori-count">({{ items.length }} jabatan)</span>
+                <button class="btn-icon-sm" @click="openAddModal(kategori)" title="Tambah ke kategori ini">➕</button>
+              </td>
+            </tr>
+
+            <!-- Items (jabatan) -->
+            <template v-if="displayExpanded.has(kategori)">
+              <template v-for="row in items" :key="row.id">
+                <SDMTreeRow
+                  :node="row"
+                  :depth="0"
+                  :expanded-ids="expandedIds"
+                  :editing-id="editingId"
+                  :edit-form="editForm"
+                  @toggle="toggleNode"
+                  @start-edit="startEdit"
+                  @save-edit="saveEdit"
+                  @cancel-edit="cancelEdit"
+                  @add-child="openAddModal"
+                  @delete="confirmDelete"
+                />
+              </template>
+            </template>
           </template>
 
           <!-- Grand Total Row -->
@@ -104,7 +121,7 @@
           </tr>
 
           <tr v-if="store.sdm.length === 0">
-            <td colspan="15" class="empty-row">Belum ada data SDM. Tambah Nomenklatur untuk memulai.</td>
+            <td colspan="15" class="empty-row">Belum ada data SDM. Tambah Jabatan untuk memulai.</td>
           </tr>
         </tbody>
       </table>
@@ -115,7 +132,7 @@
       <div v-if="showAddModal" class="modal-backdrop" @click.self="showAddModal = false">
         <div class="modal">
           <div class="modal__header">
-            <h3>{{ addForm.parent_id ? 'Tambah Jabatan (Sub)' : 'Tambah Nomenklatur' }}</h3>
+            <h3>Tambah Jabatan</h3>
             <button @click="showAddModal = false">✕</button>
           </div>
           <div class="modal__body">
@@ -183,9 +200,6 @@
           <div class="modal__header"><h3>Hapus Jabatan</h3></div>
           <div class="modal__body">
             <p>Yakin hapus <strong>{{ deleteTarget.nama_jabatan }}</strong>?</p>
-            <p class="text-warn" v-if="deleteTarget.children?.length">
-              ⚠️ Jabatan ini memiliki {{ deleteTarget.children.length }} sub-jabatan yang juga akan terhapus!
-            </p>
           </div>
           <div class="modal__footer">
             <button class="btn btn-outline" @click="deleteTarget = null">Batal</button>
@@ -208,23 +222,39 @@ import trashIcon from '@/assets/img/trash.png';
 const store = useSwpStore();
 const toast = useToast();
 
-// ── EXPAND / COLLAPSE ─────────────────────────────────────
+// ── EXPAND / COLLAPSE (Kategori) ──────────────────────────
+const displayExpanded = ref(new Set(Object.keys(store.sdmGrouped)));
+
+function toggleKategori(kategori) {
+  if (displayExpanded.value.has(kategori)) {
+    displayExpanded.value.delete(kategori);
+  } else {
+    displayExpanded.value.add(kategori);
+  }
+}
+
+function toggleAll() {
+  const allKategori = Object.keys(store.sdmGrouped);
+  if (displayExpanded.value.size === allKategori.length) {
+    displayExpanded.value.clear();
+  } else {
+    displayExpanded.value = new Set(allKategori);
+  }
+}
+
+const allExpanded = computed(() => {
+  const allKategori = Object.keys(store.sdmGrouped);
+  return allKategori.length > 0 && allKategori.every(k => displayExpanded.value.has(k));
+});
+
+// ── EXPAND / COLLAPSE (Tree nodes) ────────────────────────
 const expandedIds = ref(new Set(store.sdm.map(n => n.id)));
-const allExpanded = computed(() => store.sdm.every(n => expandedIds.value.has(n.id)));
 
 function toggleNode(id) {
   if (expandedIds.value.has(id)) {
     expandedIds.value.delete(id);
   } else {
     expandedIds.value.add(id);
-  }
-}
-
-function toggleAll() {
-  if (allExpanded.value) {
-    expandedIds.value.clear();
-  } else {
-    store.sdm.forEach(n => expandedIds.value.add(n.id));
   }
 }
 
@@ -266,11 +296,24 @@ const showAddModal = ref(false);
 const saving = ref(false);
 const addForm = ref({});
 
-function openAddModal(parentNode) {
+function openAddModal(kategoriOrNode) {
+  // kategoriOrNode bisa string (kategori) atau object (node) atau null
+  let kategoriValue = '';
+  let parentId = null;
+  
+  if (typeof kategoriOrNode === 'string') {
+    // Dari kategori header button
+    kategoriValue = kategoriOrNode;
+  } else if (kategoriOrNode && typeof kategoriOrNode === 'object') {
+    // Dari node (legacy, untuk backward compatibility)
+    parentId = kategoriOrNode.id;
+    kategoriValue = kategoriOrNode.kategori || '';
+  }
+  
   addForm.value = {
-    parent_id: parentNode?.id || null,
-    level: parentNode ? 1 : 0,
-    kategori: '',
+    parent_id: parentId,
+    level: parentId ? 1 : 0,
+    kategori: kategoriValue,
     nama_jabatan: '',
     jumlah_alat: 0, ideal: 0, min_req: 0,
     shift: 0, group_count: 0,
@@ -414,6 +457,16 @@ async function exportExcel() {
 .selisih-deficit { color: #dc2626; font-weight: 600; }
 .empty-row { text-align: center; padding: 40px; color: #94a3b8; font-style: italic; }
 .text-warn { color: #d97706; font-size: 13px; margin-top: 8px; }
+
+/* Kategori Header */
+.row-kategori { background: #f0f4f8; border-top: 2px solid #cbd5e1; }
+.row-kategori td { padding: 0; }
+.td-kategori { padding: 12px 16px !important; display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.toggle-btn { background: none; border: none; cursor: pointer; padding: 0; font-size: 14px; color: #374151; width: 20px; text-align: center; display: flex; align-items: center; justify-content: center; }
+.toggle-btn:hover { color: #1e3a5f; }
+.kategori-count { font-size: 12px; color: #64748b; }
+.btn-icon-sm { background: none; border: none; cursor: pointer; padding: 2px 6px; font-size: 14px; border-radius: 4px; transition: all 0.2s; }
+.btn-icon-sm:hover { background: rgba(59,130,246,0.1); color: #2563eb; }
 
 /* Buttons (shared) */
 .btn { padding: 7px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; border: none; font-weight: 500; transition: all 0.2s; }

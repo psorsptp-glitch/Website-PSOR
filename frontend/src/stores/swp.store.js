@@ -60,6 +60,8 @@ export const useSwpStore = defineStore('swp', () => {
     });
   });
 
+  const sdmGrouped = computed(() => buildGrouped(sdm.value));
+
   // ── HELPERS ────────────────────────────────────────────────
   function currentParams() {
     return {
@@ -352,7 +354,7 @@ export const useSwpStore = defineStore('swp', () => {
     selectedTerminalId, selectedTahun, selectedBulan, activeTab,
     selectedTerminal, selectedBulanLabel, selectedPeriodKey, bulanOptions, namaBulanList,
     kinerjaKeuangan, kinerjaOperasional, kinerjaSDM, periodLabels, periodColumns,
-    terminals, kinerja, fasilitas, fasilitasGrouped, shift, sdm, sdmGrandTotal, status, statusTotal,
+    terminals, kinerja, fasilitas, fasilitasGrouped, shift, sdm, sdmGrouped, sdmGrandTotal, status, statusTotal,
     fetchTerminals, fetchAll, fetchKinerja, fetchFasilitas, fetchShift, fetchSDM, fetchStatus,
     createKinerja, updateKinerja, updateKinerjaPeriod, deleteKinerja,
     createFasilitas, updateFasilitas, deleteFasilitas,
