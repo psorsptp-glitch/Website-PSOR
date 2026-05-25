@@ -120,6 +120,10 @@
           </div>
           <div class="modal__body">
             <div class="form-group">
+              <label>Kategori *</label>
+              <input v-model="addForm.kategori" class="form-input" placeholder="cth: Manajemen, Operasional, Support..." />
+            </div>
+            <div class="form-group">
               <label>Nama Jabatan *</label>
               <input v-model="addForm.nama_jabatan" class="form-input" placeholder="cth: Struktural, Terminal Head..." />
             </div>
@@ -143,7 +147,7 @@
                 <input v-model.number="addForm.min_req" type="number" class="form-input" min="0" />
               </div>
             </div>
-            <div v-if="addForm.parent_id" class="form-row">
+            <div class="form-row">
               <div class="form-group">
                 <label>Organik</label>
                 <input v-model.number="addForm.organik" type="number" class="form-input" min="0" />
@@ -197,6 +201,8 @@
 import { ref, computed } from 'vue';
 import { useSwpStore } from '@/stores/swp.store';
 import SDMTreeRow from './SDMTreeRow.vue';
+import editIcon from '@/assets/img/edit.png';
+import trashIcon from '@/assets/img/trash.png';
 
 const store = useSwpStore();
 
@@ -261,6 +267,7 @@ function openAddModal(parentNode) {
   addForm.value = {
     parent_id: parentNode?.id || null,
     level: parentNode ? 1 : 0,
+    kategori: '',
     nama_jabatan: '',
     jumlah_alat: 0, ideal: 0, min_req: 0,
     shift: 0, group_count: 0,

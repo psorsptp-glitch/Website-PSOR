@@ -462,20 +462,50 @@ export const createSDM = async (req, res) => {
   try {
     const payload = req.body;
 
-    // Pastikan jumlah terisi (frontend bisa kirim langsung, atau hitung di sini)
-    if (!payload.jumlah) {
-      payload.jumlah = (payload.organik || 0) + (payload.tad || 0) + (payload.pemborongan || 0);
-    }
+    // Hitung jumlah dari komponen SDM
+    const jumlah = (payload.organik || 0) + (payload.tad || 0) + (payload.pemborongan || 0);
+
+    // Hitung selisih
+    const selisih_ideal = jumlah - (payload.ideal || 0);
+    const selisih_min = jumlah - (payload.min_req || 0);
+
+    const insertPayload = {
+      terminal_id: payload.terminal_id,
+      tahun_ref: payload.tahun_ref || new Date().getFullYear(),
+      parent_id: payload.parent_id || null,
+      kategori: payload.kategori || '',
+      nama_jabatan: payload.nama_jabatan,
+      jumlah_alat: payload.jumlah_alat || 0,
+      ideal: payload.ideal || 0,
+      min_req: payload.min_req || 0,
+      shift: payload.shift || 0,
+      group_count: payload.group_count || 0,
+      organik: payload.organik || 0,
+      tad: payload.tad || 0,
+      pemborongan: payload.pemborongan || 0,
+      jumlah,
+      selisih_ideal,
+      selisih_min,
+      keterangan: payload.keterangan || '',
+      keterangan_lanjutan: payload.keterangan_lanjutan || '',
+      level: payload.level !== undefined ? payload.level : 0,
+      urutan: payload.urutan || 0,
+      status: 'active',
+    };
 
     const { data, error } = await supabase
       .from('swp_sdm_structure')
-      .insert(payload)
+      .insert(insertPayload)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase insert error:', error);
+      throw error;
+    }
     res.status(201).json({ success: true, data });
   } catch (err) {
+    console.error('createSDM error:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
