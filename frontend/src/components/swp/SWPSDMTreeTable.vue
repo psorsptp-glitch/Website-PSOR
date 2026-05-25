@@ -443,7 +443,7 @@ async function exportExcel() {
 .sdm-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .sdm-table thead { position: sticky; top: 0; z-index: 10; }
 .sdm-table th {
-  background: #FFFFFF; color: white; padding: 7px 8px;
+  background: #1e3a5f; color: white; padding: 7px 8px;
   text-align: center; font-weight: 600; border: 1px solid #2d4a7a;
   white-space: nowrap;
 }
