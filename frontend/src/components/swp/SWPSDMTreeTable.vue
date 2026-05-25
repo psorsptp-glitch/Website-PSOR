@@ -296,7 +296,15 @@ async function submitAdd() {
       expandedIds.value.add(addForm.value.parent_id);
     }
   } catch (e) {
-    toast.error('Gagal menambahkan SDM: ' + (e.message || 'Error tidak diketahui'));
+    // Extract error message from various possible error formats
+    let errorMsg = 'Error tidak diketahui';
+    if (e.response?.data?.message) {
+      errorMsg = e.response.data.message;
+    } else if (e.message) {
+      errorMsg = e.message;
+    }
+    console.error('😨 Error details:', e);
+    toast.error('Gagal menambahkan SDM: ' + errorMsg);
   } finally {
     saving.value = false;
   }

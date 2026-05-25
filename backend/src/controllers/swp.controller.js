@@ -474,11 +474,12 @@ export const createSDM = async (req, res) => {
     const selisih_ideal = jumlah - (payload.ideal || 0);
     const selisih_min = jumlah - (payload.min_req || 0);
 
+    // Build insert payload - only include fields that backend schema supports
+    // Note: kategori field may not exist in schema yet, will add via migration
     const insertPayload = {
       terminal_id: payload.terminal_id || null,
       tahun_ref: payload.tahun_ref || new Date().getFullYear(),
       parent_id: payload.parent_id || null,
-      kategori: payload.kategori || '',
       nama_jabatan: payload.nama_jabatan,
       jumlah_alat: payload.jumlah_alat || 0,
       ideal: payload.ideal || 0,
@@ -498,6 +499,12 @@ export const createSDM = async (req, res) => {
       status: 'active',
     };
 
+    // Try to include kategori only if it's provided and not empty
+    // This allows graceful migration - works with or without kategori column
+    if (payload.kategori && payload.kategori.trim()) {
+      insertPayload.kategori = payload.kategori;
+    }
+
     console.log('💾 Prepared insert payload:', JSON.stringify(insertPayload, null, 2));
 
     const { data, error } = await supabase
@@ -513,6 +520,25 @@ export const createSDM = async (req, res) => {
         details: error.details,
         hint: error.hint,
       });
+      
+      // Special handling for missing column error
+      if (error.message && error.message.includes('kategori')) {
+        console.warn('⚠️  Kategori column not found in database. Retrying without kategori field...');
+        // Remove kategori and retry
+        delete insertPayload.kategori;
+        const { data: retryData, error: retryError } = await supabase
+          .from('swp_sdm_structure')
+          .insert(insertPayload)
+          .select()
+          .single();
+        
+        if (retryError) {
+          throw retryError;
+        }
+        console.log('✅ SDM created successfully (without kategori):', retryData);
+        return res.status(201).json({ success: true, data: retryData });
+      }
+      
       return res.status(400).json({ 
         success: false, 
         message: error.message || 'Database error',
