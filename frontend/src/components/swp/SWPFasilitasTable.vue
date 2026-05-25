@@ -159,10 +159,12 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useSwpStore } from '@/stores/swp.store';
+import { useToast } from '@/composables/useToast.js';
 import editIcon from '@/assets/img/edit.png';
 import trashIcon from '@/assets/img/trash.png';
 
 const store = useSwpStore();
+const toast = useToast();
 
 // Expand semua kategori by default (computed, reactive)
 const expandedKategori = computed(() => {
@@ -198,8 +200,11 @@ function cancelEdit() { editingId.value = null; editForm.value = {}; }
 async function saveEdit(row) {
   try {
     await store.updateFasilitas(row.id, editForm.value);
+    toast.success('Data fasilitas berhasil diperbarui');
     cancelEdit();
-  } catch (e) { alert('Gagal: ' + e.message); }
+  } catch (e) {
+    toast.error('Gagal: ' + (e.message || 'Error tidak diketahui'));
+  }
 }
 
 // Add
@@ -213,13 +218,19 @@ function openAdd(kategori = '') {
 }
 
 async function submitAdd() {
-  if (!addForm.value.nama_item) return alert('Nama item wajib diisi!');
+  if (!addForm.value.nama_item) {
+    toast.error('Nama item wajib diisi!');
+    return;
+  }
   saving.value = true;
   try {
     await store.createFasilitas(addForm.value);
+    toast.success('Item fasilitas berhasil ditambahkan');
     showAdd.value = false;
     manualExpanded.value.add(addForm.value.kategori);
-  } catch (e) { alert('Gagal: ' + e.message); }
+  } catch (e) { 
+    toast.error('Gagal: ' + (e.message || 'Error tidak diketahui'));
+  }
   finally { saving.value = false; }
 }
 
@@ -227,8 +238,13 @@ async function submitAdd() {
 const deleteTarget = ref(null);
 function confirmDelete(row) { deleteTarget.value = row; }
 async function doDelete() {
-  await store.deleteFasilitas(deleteTarget.value.id);
-  deleteTarget.value = null;
+  try {
+    await store.deleteFasilitas(deleteTarget.value.id);
+    toast.success('Item fasilitas berhasil dihapus');
+    deleteTarget.value = null;
+  } catch (e) {
+    toast.error('Gagal: ' + (e.message || 'Error tidak diketahui'));
+  }
 }
 
 // Export
@@ -244,7 +260,10 @@ async function exportExcel() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Fasilitas');
     XLSX.writeFile(wb, `SWP_Fasilitas_${store.selectedTahun}.xlsx`);
-  } catch (e) { alert('Export gagal: npm install xlsx'); }
+    toast.success('File berhasil diexport');
+  } catch (e) { 
+    toast.error('Export gagal: npm install xlsx');
+  }
 }
 </script>
 

@@ -236,10 +236,12 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useSwpStore } from '@/stores/swp.store';
+import { useToast } from '@/composables/useToast.js';
 import editIcon from '@/assets/img/edit.png';
 import trashIcon from '@/assets/img/trash.png';
 
 const store = useSwpStore();
+const toast = useToast();
 
 // ── HELPERS ───────────────────────────────────────────────
 function calcPct(realisasi, rkap) {
@@ -275,8 +277,14 @@ const editForm = ref({});
 function startEdit(row) { editingId.value = row.id; editForm.value = { ...row }; }
 function cancelEdit() { editingId.value = null; editForm.value = {}; }
 async function saveEdit(row) {
-  try { await store.updateStatus(row.id, editForm.value); cancelEdit(); }
-  catch (e) { alert('Gagal: ' + e.message); }
+  try { 
+    await store.updateStatus(row.id, editForm.value); 
+    toast.success('Data status berhasil diperbarui');
+    cancelEdit(); 
+  }
+  catch (e) { 
+    toast.error('Gagal: ' + (e.message || 'Error tidak diketahui'));
+  }
 }
 
 // ── ADD STATUS ────────────────────────────────────────────
@@ -304,10 +312,19 @@ function openAdd() {
 async function submitAdd() {
   const payload = { ...addForm.value };
   if (payload.kategori === '_custom') payload.kategori = payload.kategoriCustom;
-  if (!payload.kategori) return alert('Kategori wajib diisi!');
+  if (!payload.kategori) {
+    toast.error('Kategori wajib diisi!');
+    return;
+  }
   saving.value = true;
-  try { await store.createStatus(payload); showAdd.value = false; }
-  catch (e) { alert('Gagal: ' + e.message); }
+  try { 
+    await store.createStatus(payload); 
+    toast.success('Kategori pekerja berhasil ditambahkan');
+    showAdd.value = false; 
+  }
+  catch (e) { 
+    toast.error('Gagal: ' + (e.message || 'Error tidak diketahui'));
+  }
   finally { saving.value = false; }
 }
 
@@ -327,16 +344,26 @@ const newShift = ref({ nama_shift: '', jam_kerja: '', keterangan: '', urutan: 0 
 function startShift(s) { editingShiftId.value = s.id; shiftForm.value = { ...s }; }
 function cancelShift() { editingShiftId.value = null; shiftForm.value = {}; }
 async function saveShift(s) {
-  try { await store.updateShift(s.id, shiftForm.value); cancelShift(); }
-  catch (e) { alert('Gagal: ' + e.message); }
+  try { 
+    await store.updateShift(s.id, shiftForm.value); 
+    toast.success('Shift kerja berhasil diperbarui');
+    cancelShift(); 
+  }
+  catch (e) { 
+    toast.error('Gagal: ' + (e.message || 'Error tidak diketahui'));
+  }
 }
 function openAddShift() {
   newShift.value = { nama_shift: '', jam_kerja: '', keterangan: '', urutan: store.shift.length };
   showAddShiftModal.value = true;
 }
 async function submitShift() {
-  if (!newShift.value.nama_shift) return alert('Nama shift wajib!');
+  if (!newShift.value.nama_shift) {
+    toast.error('Nama shift wajib!');
+    return;
+  }
   await store.createShift(newShift.value);
+  toast.success('Shift kerja berhasil ditambahkan');
   showAddShiftModal.value = false;
 }
 async function deleteShift(s) {
@@ -357,7 +384,10 @@ async function exportExcel() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Status Pekerja');
     XLSX.writeFile(wb, `SWP_Status_${store.selectedTahun}.xlsx`);
-  } catch (e) { alert('Export gagal: npm install xlsx'); }
+    toast.success('File berhasil diexport');
+  } catch (e) { 
+    toast.error('Export gagal: npm install xlsx');
+  }
 }
 </script>
 

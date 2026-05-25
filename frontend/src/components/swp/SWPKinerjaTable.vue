@@ -323,12 +323,14 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useSwpStore } from '@/stores/swp.store';
+import { useToast } from '@/composables/useToast.js';
 import TrendLineChart from './TrendLineChart.vue';
 import IndividualTrendChart from './IndividualTrendChart.vue';
 import editIcon from '@/assets/img/edit.png';
 import trashIcon from '@/assets/img/trash.png';
 
 const store = useSwpStore();
+const toast = useToast();
 
 // ── 12 BULAN FIXED ────────────────────────────────────────
 const bulanList = computed(() => {
@@ -491,8 +493,11 @@ function cancelEdit() { editingId.value = null; editForm.value = {}; }
 async function saveEdit(row) {
   try {
     await store.updateKinerja(row.id, editForm.value);
+    toast.success('Data kinerja berhasil diperbarui');
     cancelEdit();
-  } catch (e) { alert('Gagal menyimpan: ' + e.message); }
+  } catch (e) { 
+    toast.error('Gagal menyimpan: ' + (e.message || 'Error tidak diketahui'));
+  }
 }
 
 // ── PERIOD CELL EDIT (double-click) ───────────────────────
@@ -535,7 +540,7 @@ async function onPeriodEnter(row) {
     await store.updateKinerjaPeriod(row.id, row.category, store.selectedPeriodKey, periodEditValue.value);
     cancelPeriodEdit();
   } catch (e) {
-    alert('Gagal update: ' + e.message);
+    toast.error('Gagal update: ' + (e.message || 'Error tidak diketahui'));
     isSavingPeriod.value = false;
   }
 }
@@ -548,7 +553,7 @@ async function onPeriodBlur(row) {
     await store.updateKinerjaPeriod(row.id, row.category, store.selectedPeriodKey, periodEditValue.value);
     cancelPeriodEdit();
   } catch (e) {
-    alert('Gagal update: ' + e.message);
+    toast.error('Gagal update: ' + (e.message || 'Error tidak diketahui'));
     isSavingPeriod.value = false;
   }
 }
@@ -575,7 +580,7 @@ async function onPeriodEnterSamaThLalu(row) {
     await store.updateKinerjaPeriod(row.id, row.category, key, periodEditValueSamaThLalu.value);
     cancelPeriodEditSamaThLalu();
   } catch (e) {
-    alert('Gagal update: ' + e.message);
+    toast.error('Gagal update: ' + (e.message || 'Error tidak diketahui'));
     isSavingPeriod.value = false;
   }
 }
@@ -589,7 +594,7 @@ async function onPeriodBlurSamaThLalu(row) {
     await store.updateKinerjaPeriod(row.id, row.category, key, periodEditValueSamaThLalu.value);
     cancelPeriodEditSamaThLalu();
   } catch (e) {
-    alert('Gagal update: ' + e.message);
+    toast.error('Gagal update: ' + (e.message || 'Error tidak diketahui'));
     isSavingPeriod.value = false;
   }
 }
@@ -622,7 +627,7 @@ async function onPeriodEnterSebelumnya(row) {
     await store.updateKinerjaPeriod(row.id, row.category, key, periodEditValueSebelumnya.value);
     cancelPeriodEditSebelumnya();
   } catch (e) {
-    alert('Gagal update: ' + e.message);
+    toast.error('Gagal update: ' + (e.message || 'Error tidak diketahui'));
     isSavingPeriod.value = false;
   }
 }
@@ -642,7 +647,7 @@ async function onPeriodBlurSebelumnya(row) {
     await store.updateKinerjaPeriod(row.id, row.category, key, periodEditValueSebelumnya.value);
     cancelPeriodEditSebelumnya();
   } catch (e) {
-    alert('Gagal update: ' + e.message);
+    toast.error('Gagal update: ' + (e.message || 'Error tidak diketahui'));
     isSavingPeriod.value = false;
   }
 }
@@ -681,13 +686,17 @@ function openAddModal() {
   showAddModal.value = true;
 }
 async function submitAdd() {
-  if (!addForm.value.indikator) return alert('Nama indikator wajib diisi!');
+  if (!addForm.value.indikator) {
+    toast.error('Nama indikator wajib diisi!');
+    return;
+  }
   saving.value = true;
   try {
     await store.createKinerja({ ...addForm.value, category: activeCategory.value });
+    toast.success('Indikator berhasil ditambahkan');
     showAddModal.value = false;
   } catch (e) {
-    alert('Gagal: ' + e.message);
+    toast.error('Gagal: ' + (e.message || 'Error tidak diketahui'));
   } finally {
     saving.value = false;
   }
@@ -724,8 +733,9 @@ async function exportExcel() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, currentCategory.value.label);
     XLSX.writeFile(wb, `SWP_Kinerja_${currentCategory.value.label}_${store.selectedTahun}.xlsx`);
+    toast.success('File berhasil diexport');
   } catch (e) {
-    alert('Export gagal. Pastikan: npm install xlsx');
+    toast.error('Export gagal: npm install xlsx');
   }
 }
 </script>

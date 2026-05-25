@@ -200,11 +200,13 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useSwpStore } from '@/stores/swp.store';
+import { useToast } from '@/composables/useToast.js';
 import SDMTreeRow from './SDMTreeRow.vue';
 import editIcon from '@/assets/img/edit.png';
 import trashIcon from '@/assets/img/trash.png';
 
 const store = useSwpStore();
+const toast = useToast();
 
 // ── EXPAND / COLLAPSE ─────────────────────────────────────
 const expandedIds = ref(new Set(store.sdm.map(n => n.id)));
@@ -252,9 +254,10 @@ function cancelEdit() { editingId.value = null; editForm.value = {}; }
 async function saveEdit(node) {
   try {
     await store.updateSDM(node.id, editForm.value);
+    toast.success('Data berhasil diperbarui');
     cancelEdit();
   } catch (e) {
-    alert('Gagal: ' + e.message);
+    toast.error('Gagal memperbarui: ' + (e.message || 'Error tidak diketahui'));
   }
 }
 
@@ -279,17 +282,21 @@ function openAddModal(parentNode) {
 }
 
 async function submitAdd() {
-  if (!addForm.value.nama_jabatan) return alert('Nama jabatan wajib diisi!');
+  if (!addForm.value.nama_jabatan) {
+    toast.error('Nama jabatan wajib diisi!');
+    return;
+  }
   saving.value = true;
   try {
     await store.createSDM(addForm.value);
+    toast.success('Data SDM berhasil ditambahkan');
     showAddModal.value = false;
     // Auto-expand parent
     if (addForm.value.parent_id) {
       expandedIds.value.add(addForm.value.parent_id);
     }
   } catch (e) {
-    alert('Gagal: ' + e.message);
+    toast.error('Gagal menambahkan SDM: ' + (e.message || 'Error tidak diketahui'));
   } finally {
     saving.value = false;
   }
@@ -299,8 +306,13 @@ async function submitAdd() {
 const deleteTarget = ref(null);
 function confirmDelete(node) { deleteTarget.value = node; }
 async function doDelete() {
-  await store.deleteSDM(deleteTarget.value.id);
-  deleteTarget.value = null;
+  try {
+    await store.deleteSDM(deleteTarget.value.id);
+    toast.success('Data SDM berhasil dihapus');
+    deleteTarget.value = null;
+  } catch (e) {
+    toast.error('Gagal menghapus: ' + (e.message || 'Error tidak diketahui'));
+  }
 }
 
 // ── HELPERS ───────────────────────────────────────────────
@@ -347,8 +359,9 @@ async function exportExcel() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Struktur SDM');
     XLSX.writeFile(wb, `SWP_SDM_${store.selectedTahun}.xlsx`);
+    toast.success('File berhasil diexport');
   } catch (e) {
-    alert('Export gagal: npm install xlsx');
+    toast.error('Export gagal: ' + (e.message || 'npm install xlsx'));
   }
 }
 </script>

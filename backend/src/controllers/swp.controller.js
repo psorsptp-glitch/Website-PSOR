@@ -461,11 +461,18 @@ export const getSDM = async (req, res) => {
 export const createSDM = async (req, res) => {
   try {
     const payload = req.body;
+    console.log('📝 createSDM request payload:', JSON.stringify(payload, null, 2));
+
+    // Validate required fields
+    if (!payload.terminal_id) {
+      return res.status(400).json({ success: false, message: 'terminal_id is required' });
+    }
+    if (!payload.nama_jabatan) {
+      return res.status(400).json({ success: false, message: 'nama_jabatan is required' });
+    }
 
     // Hitung jumlah dari komponen SDM
     const jumlah = (payload.organik || 0) + (payload.tad || 0) + (payload.pemborongan || 0);
-
-    // Hitung selisih
     const selisih_ideal = jumlah - (payload.ideal || 0);
     const selisih_min = jumlah - (payload.min_req || 0);
 
@@ -493,6 +500,8 @@ export const createSDM = async (req, res) => {
       status: 'active',
     };
 
+    console.log('💾 Prepared insert payload:', JSON.stringify(insertPayload, null, 2));
+
     const { data, error } = await supabase
       .from('swp_sdm_structure')
       .insert(insertPayload)
@@ -500,13 +509,30 @@ export const createSDM = async (req, res) => {
       .single();
 
     if (error) {
-      console.error('Supabase insert error:', error);
-      throw error;
+      console.error('❌ Supabase insert error:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
+      return res.status(400).json({ 
+        success: false, 
+        message: error.message || 'Database error',
+        code: error.code,
+        details: error.details,
+      });
     }
+    console.log('✅ SDM created successfully:', data);
     res.status(201).json({ success: true, data });
   } catch (err) {
-    console.error('createSDM error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    console.error('❌ createSDM error:', {
+      message: err.message,
+      stack: err.stack,
+    });
+    res.status(500).json({ 
+      success: false, 
+      message: err.message || 'Internal server error',
+    });
   }
 };
 
