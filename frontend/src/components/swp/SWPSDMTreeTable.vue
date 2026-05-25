@@ -267,6 +267,7 @@ const editForm = ref({});
 function startEdit(node) {
   editingId.value = node.id;
   editForm.value = {
+    kategori: node.kategori,
     nama_jabatan: node.nama_jabatan,
     jumlah_alat: node.jumlah_alat,
     ideal: node.ideal,
@@ -285,10 +286,13 @@ function cancelEdit() { editingId.value = null; editForm.value = {}; }
 
 async function saveEdit(node) {
   try {
+    console.log('📝 Component: Saving SDM edit for ID:', node.id);
+    console.log('   Payload:', editForm.value);
     await store.updateSDM(node.id, editForm.value);
     toast.success('Data berhasil diperbarui');
     cancelEdit();
   } catch (e) {
+    console.error('❌ Component: saveEdit error:', e);
     toast.error('Gagal memperbarui: ' + (e.message || 'Error tidak diketahui'));
   }
 }
