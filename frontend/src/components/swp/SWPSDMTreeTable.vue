@@ -282,18 +282,37 @@ function startEdit(node) {
   };
 }
 
+// ── EDIT STATE ────────────────────────────────────────────
+const isSaving = ref(false);
+
 function cancelEdit() { editingId.value = null; editForm.value = {}; }
 
 async function saveEdit(node) {
+  // Prevent multiple simultaneous saves
+  if (isSaving.value) {
+    console.warn('⚠️  Save already in progress, ignoring request');
+    return;
+  }
+  
   try {
+    isSaving.value = true;
     console.log('📝 Component: Saving SDM edit for ID:', node.id);
-    console.log('   Payload:', editForm.value);
-    await store.updateSDM(node.id, editForm.value);
-    toast.success('Data berhasil diperbarui');
+    // Sanitize payload: convert null to empty string
+    const sanitizedPayload = {
+      ...editForm.value,
+      keterangan: editForm.value.keterangan || '',
+      keterangan_lanjutan: editForm.value.keterangan_lanjutan || '',
+    };
+    console.log('   Sanitized Payload:', sanitizedPayload);
+    await store.updateSDM(node.id, sanitizedPayload);
+    toast.success('✅ Data berhasil diperbarui');
     cancelEdit();
   } catch (e) {
     console.error('❌ Component: saveEdit error:', e);
-    toast.error('Gagal memperbarui: ' + (e.message || 'Error tidak diketahui'));
+    const errorMsg = e.response?.data?.message || e.message || 'Error tidak diketahui';
+    toast.error('❌ Gagal memperbarui: ' + errorMsg);
+  } finally {
+    isSaving.value = false;
   }
 }
 
@@ -335,15 +354,24 @@ async function submitAdd() {
     toast.error('Nama jabatan wajib diisi!');
     return;
   }
+  if (!addForm.value.kategori) {
+    toast.error('Kategori wajib diisi!');
+    return;
+  }
   saving.value = true;
   try {
-    await store.createSDM(addForm.value);
+    // Sanitize payload: convert null/undefined to empty string
+    const sanitizedPayload = {
+      ...addForm.value,
+      keterangan: addForm.value.keterangan || '',
+      keterangan_lanjutan: addForm.value.keterangan_lanjutan || '',
+    };
+    console.log('📝 Component: Adding new SDM with payload:', sanitizedPayload);
+    await store.createSDM(sanitizedPayload);
     toast.success('Data SDM berhasil ditambahkan');
     showAddModal.value = false;
-    // Auto-expand parent
-    if (addForm.value.parent_id) {
-      expandedIds.value.add(addForm.value.parent_id);
-    }
+    // Auto-expand parent kategori
+    displayExpanded.value.add(addForm.value.kategori);
   } catch (e) {
     // Extract error message from various possible error formats
     let errorMsg = 'Error tidak diketahui';

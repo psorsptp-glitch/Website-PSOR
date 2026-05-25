@@ -559,31 +559,64 @@ export const updateSDM = async (req, res) => {
     const { id } = req.params;
     const payload = req.body;
 
+    // Validate ID exists
+    if (!id) {
+      return res.status(400).json({ success: false, message: 'ID is required' });
+    }
+
+    console.log('📝 updateSDM called for ID:', id);
+    console.log('   Payload:', JSON.stringify(payload, null, 2));
+
+    // Verify record exists first
+    const { data: existing, error: fetchErr } = await supabase
+      .from('swp_sdm_structure')
+      .select('id, organik, tad, pemborongan, ideal, min_req')
+      .eq('id', id);
+
+    if (fetchErr) {
+      console.error('❌ Error fetching existing record:', fetchErr);
+      throw new Error(`Cannot fetch record: ${fetchErr.message}`);
+    }
+
+    if (!existing || existing.length === 0) {
+      console.warn('⚠️  Record not found for ID:', id);
+      return res.status(404).json({ success: false, message: `Record with ID ${id} not found` });
+    }
+
     // Auto-recalculate jika ada perubahan nilai SDM
     const needsRecalc = ['organik', 'tad', 'pemborongan'].some(k => k in payload);
     if (needsRecalc) {
-      // Fetch current values untuk merge
-      const { data: current } = await supabase
-        .from('swp_sdm_structure')
-        .select('organik, tad, pemborongan, ideal, min_req')
-        .eq('id', id)
-        .single();
-
+      const current = existing[0];
       const merged = { ...current, ...payload };
       payload.jumlah = (merged.organik || 0) + (merged.tad || 0) + (merged.pemborongan || 0);
+      console.log('   Recalculated jumlah:', payload.jumlah);
     }
 
     const { data, error } = await supabase
       .from('swp_sdm_structure')
       .update(payload)
       .eq('id', id)
-      .select()
-      .single();
+      .select();
 
-    if (error) throw error;
-    res.json({ success: true, data });
+    if (error) {
+      console.error('❌ Supabase update error:', error);
+      throw new Error(`Update failed: ${error.message}`);
+    }
+
+    if (!data || data.length === 0) {
+      console.warn('⚠️  Update returned no rows for ID:', id);
+      return res.status(404).json({ success: false, message: 'Update did not return data' });
+    }
+
+    console.log('✅ SDM updated successfully:', data[0].id);
+    res.json({ success: true, data: data[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error('❌ updateSDM error:', err);
+    res.status(500).json({ 
+      success: false, 
+      message: err.message,
+      details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
   }
 };
 

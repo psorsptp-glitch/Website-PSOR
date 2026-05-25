@@ -274,6 +274,9 @@ export const useSwpStore = defineStore('swp', () => {
       ...payload, 
       terminal_id: selectedTerminalId.value, 
       tahun_ref: selectedTahun.value,
+      // Sanitize null values
+      keterangan: payload.keterangan || '',
+      keterangan_lanjutan: payload.keterangan_lanjutan || '',
     };
     console.log('🚀 Store: Sending createSDM payload:', JSON.stringify(fullPayload, null, 2));
     console.log('   Terminal ID:', selectedTerminalId.value);
@@ -285,13 +288,18 @@ export const useSwpStore = defineStore('swp', () => {
       await fetchSDM();
       return response;
     } catch (err) {
-      console.error('❌ Store: createSDM error:', {
+      const errorDetail = {
         status: err.response?.status,
         statusText: err.response?.statusText,
+        message: err.response?.data?.message || err.message,
         data: err.response?.data,
-        message: err.message,
-      });
-      throw err;
+      };
+      console.error('❌ Store: createSDM error:', errorDetail);
+      // Re-throw with better error message
+      const errMsg = err.response?.data?.message || err.message || 'Unknown error';
+      const customErr = new Error(errMsg);
+      customErr.response = err.response;
+      throw customErr;
     }
   }
 
@@ -300,22 +308,54 @@ export const useSwpStore = defineStore('swp', () => {
       ...payload,
       terminal_id: selectedTerminalId.value,
       tahun_ref: selectedTahun.value,
+      // Sanitize null values
+      keterangan: payload.keterangan || '',
+      keterangan_lanjutan: payload.keterangan_lanjutan || '',
     };
     console.log('🚀 Store: Sending updateSDM payload:', JSON.stringify(fullPayload, null, 2));
-    try {
-      const response = await api.put(`/swp/sdm/${id}`, fullPayload);
-      console.log('✅ Store: SDM updated successfully');
-      await fetchSDM();
-      return response;
-    } catch (err) {
-      console.error('❌ Store: updateSDM error:', {
-        status: err.response?.status,
-        statusText: err.response?.statusText,
-        data: err.response?.data,
-        message: err.message,
-      });
-      throw err;
+    
+    const maxRetries = 3;
+    let lastError = null;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await api.put(`/swp/sdm/${id}`, fullPayload);
+        console.log('✅ Store: SDM updated successfully on attempt', attempt);
+        await fetchSDM();
+        return response;
+      } catch (err) {
+        lastError = err;
+        const status = err.response?.status;
+        const message = err.response?.data?.message || err.message;
+        const errorDetail = {
+          attempt,
+          status,
+          statusText: err.response?.statusText,
+          message,
+          data: err.response?.data,
+        };
+        
+        console.error('❌ Store: updateSDM error (attempt ' + attempt + '/' + maxRetries + '):', errorDetail);
+        
+        // Don't retry on 400/404 errors (client errors)
+        if (status >= 400 && status < 500) {
+          throw err;
+        }
+        
+        // For 500 errors, retry with exponential backoff
+        if (attempt < maxRetries && status >= 500) {
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // 1s, 2s, 4s
+          console.log('⏳ Retrying in', delay, 'ms...');
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
     }
+    
+    // All retries exhausted
+    const errMsg = lastError?.response?.data?.message || lastError?.message || 'Failed after ' + maxRetries + ' attempts';
+    const customErr = new Error(errMsg);
+    customErr.response = lastError?.response;
+    throw customErr;
   }
 
   async function deleteSDM(id) {
