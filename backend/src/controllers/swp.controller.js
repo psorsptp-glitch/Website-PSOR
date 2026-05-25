@@ -463,12 +463,10 @@ export const createSDM = async (req, res) => {
     const payload = req.body;
     console.log('📝 createSDM request payload:', JSON.stringify(payload, null, 2));
 
-    // Validate required fields
-    if (!payload.terminal_id) {
-      return res.status(400).json({ success: false, message: 'terminal_id is required' });
-    }
-    if (!payload.nama_jabatan) {
-      return res.status(400).json({ success: false, message: 'nama_jabatan is required' });
+    // Validate only critical field
+    if (!payload.nama_jabatan || payload.nama_jabatan.trim() === '') {
+      console.warn('⚠️  Missing atau empty nama_jabatan');
+      return res.status(400).json({ success: false, message: 'Nama jabatan is required' });
     }
 
     // Hitung jumlah dari komponen SDM
@@ -477,7 +475,7 @@ export const createSDM = async (req, res) => {
     const selisih_min = jumlah - (payload.min_req || 0);
 
     const insertPayload = {
-      terminal_id: payload.terminal_id,
+      terminal_id: payload.terminal_id || null,
       tahun_ref: payload.tahun_ref || new Date().getFullYear(),
       parent_id: payload.parent_id || null,
       kategori: payload.kategori || '',

@@ -268,11 +268,29 @@ export const useSwpStore = defineStore('swp', () => {
 
   // ── SDM CRUD ───────────────────────────────────────────────
   async function createSDM(payload) {
-    const response = await api.post('/swp/sdm', {
-      ...payload, terminal_id: selectedTerminalId.value, tahun_ref: selectedTahun.value,
-    });
-    await fetchSDM();
-    return response;
+    const fullPayload = {
+      ...payload, 
+      terminal_id: selectedTerminalId.value, 
+      tahun_ref: selectedTahun.value,
+    };
+    console.log('🚀 Store: Sending createSDM payload:', JSON.stringify(fullPayload, null, 2));
+    console.log('   Terminal ID:', selectedTerminalId.value);
+    console.log('   Tahun Ref:', selectedTahun.value);
+    
+    try {
+      const response = await api.post('/swp/sdm', fullPayload);
+      console.log('✅ Store: SDM created successfully');
+      await fetchSDM();
+      return response;
+    } catch (err) {
+      console.error('❌ Store: createSDM error:', {
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        message: err.message,
+      });
+      throw err;
+    }
   }
 
   async function updateSDM(id, payload) {
