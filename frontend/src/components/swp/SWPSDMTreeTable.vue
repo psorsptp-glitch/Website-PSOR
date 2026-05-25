@@ -68,11 +68,13 @@
             <!-- Category header -->
             <tr class="row-kategori">
               <td colspan="15" class="td-kategori">
-                <button class="toggle-btn" @click="toggleKategori(kategori)">
-                  {{ displayExpanded.has(kategori) ? '▾' : '▸' }}
-                </button>
-                <strong>{{ kategori }}</strong>
-                <span class="kategori-count">({{ items.length }} jabatan)</span>
+                <div class="kategori-label">
+                  <button class="toggle-btn" @click="toggleKategori(kategori)">
+                    {{ displayExpanded.has(kategori) ? '▾' : '▸' }}
+                  </button>
+                  <strong>{{ kategori }}</strong>
+                  <span class="kategori-count">({{ items.length }} jabatan)</span>
+                </div>
                 <button class="btn-icon-sm" @click="openAddModal(kategori)" title="Tambah ke kategori ini">➕</button>
               </td>
             </tr>
@@ -461,11 +463,12 @@ async function exportExcel() {
 /* Kategori Header */
 .row-kategori { background: #f0f4f8; border-top: 2px solid #cbd5e1; }
 .row-kategori td { padding: 0; }
-.td-kategori { padding: 12px 16px !important; display: flex; align-items: center; gap: 10px; font-size: 13px; }
-.toggle-btn { background: none; border: none; cursor: pointer; padding: 0; font-size: 14px; color: #374151; width: 20px; text-align: center; display: flex; align-items: center; justify-content: center; }
+.td-kategori { padding: 12px 16px !important; display: flex; align-items: center; gap: 10px; font-size: 13px; justify-content: space-between; }
+.kategori-label { display: flex; align-items: center; gap: 8px; }
+.toggle-btn { background: none; border: none; cursor: pointer; padding: 0; font-size: 14px; color: #374151; width: 20px; text-align: center; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .toggle-btn:hover { color: #1e3a5f; }
-.kategori-count { font-size: 12px; color: #64748b; }
-.btn-icon-sm { background: none; border: none; cursor: pointer; padding: 2px 6px; font-size: 14px; border-radius: 4px; transition: all 0.2s; }
+.kategori-count { font-size: 12px; color: #64748b; white-space: nowrap; }
+.btn-icon-sm { background: none; border: none; cursor: pointer; padding: 2px 6px; font-size: 14px; border-radius: 4px; transition: all 0.2s; flex-shrink: 0; }
 .btn-icon-sm:hover { background: rgba(59,130,246,0.1); color: #2563eb; }
 
 /* Buttons (shared) */
