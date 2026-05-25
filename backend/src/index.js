@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 3000
 // ── Security ──────────────────────────────────────────
 app.use(helmet())
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['https://portapeople.netlify.app/'],
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['https://portapeople.netlify.app'],
   credentials: true,
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS']
 }))
